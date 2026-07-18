@@ -22,7 +22,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000, leave the cluster on `devnet`, connect a Solana wallet, and use devnet SOL from [faucet.solana.com](https://faucet.solana.com/) if needed.
+Open http://localhost:3001, leave the cluster on `devnet`, connect a Solana wallet, and use devnet SOL from [faucet.solana.com](https://faucet.solana.com/) if needed. Port 3000 is intentionally avoided because another local app may already use it.
 
 Useful checks:
 
