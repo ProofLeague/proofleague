@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { CommitmentCard } from "./components/commitment-card";
+import { AgentImportCard } from "./components/agent-import-card";
 import { Leaderboard } from "./components/leaderboard";
 import { MatchBoard } from "./components/match-board";
 import { TxlineSetupCard } from "./components/txline-setup-card";
 import { VerifierCard } from "./components/verifier-card";
 import type { CommittedPrediction } from "./lib/scoring";
+import type { AgentDraft } from "./lib/agent-draft";
 import type { TxlineMatch } from "./lib/txline";
 
 export default function Home() {
   const [selectedMatch, setSelectedMatch] = useState<TxlineMatch>();
+  const [agentDraft, setAgentDraft] = useState<AgentDraft>();
   const [records, setRecords] = useState<CommittedPrediction[]>([]);
   const [ledgerStatus, setLedgerStatus] = useState<
     "loading" | "synced" | "saving" | "offline"
@@ -87,13 +90,19 @@ export default function Home() {
           onSelectMatch={setSelectedMatch}
         />
         <CommitmentCard
+          key={agentDraft?.hash ?? "manual"}
           selectedMatch={selectedMatch}
+          agentDraft={agentDraft}
           onRecordChange={handleRecordChange}
         />
       </div>
 
       <div className="mt-8">
         <TxlineSetupCard />
+      </div>
+
+      <div className="mt-8">
+        <AgentImportCard onImport={setAgentDraft} />
       </div>
 
       <div className="mt-8">

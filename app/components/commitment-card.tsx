@@ -15,6 +15,7 @@ import {
   type ScoredPrediction,
 } from "../lib/scoring";
 import type { TxlineMatch } from "../lib/txline";
+import type { AgentDraft } from "../lib/agent-draft";
 import { useSend } from "../lib/hooks/use-send";
 
 function isScoredRecord(
@@ -25,19 +26,32 @@ function isScoredRecord(
 
 export function CommitmentCard({
   selectedMatch,
+  agentDraft,
   onRecordChange,
 }: {
   selectedMatch?: TxlineMatch;
+  agentDraft?: AgentDraft;
   onRecordChange?: (record: CommittedPrediction) => void;
 }) {
   const client = useAppClient();
   const connected = useConnectedWallet();
   const { cluster, getExplorerUrl } = useCluster();
   const { run, isSending } = useSend();
-  const [matchId, setMatchId] = useState("world-cup-demo-001");
-  const [agentId, setAgentId] = useState("proofleague-agent-1");
-  const [prediction, setPrediction] = useState<PredictionChoice>("home");
-  const [confidence, setConfidence] = useState("0.65");
+  const [matchId, setMatchId] = useState(
+    agentDraft?.payload.matchId ?? "world-cup-demo-001"
+  );
+  const [agentId, setAgentId] = useState(
+    agentDraft?.payload.agentId ?? "proofleague-agent-1"
+  );
+  const modelVersion =
+    agentDraft?.payload.modelVersion ?? "proofleague-agent-v1";
+  const [prediction, setPrediction] = useState<PredictionChoice>(
+    agentDraft?.payload.prediction ?? "home"
+  );
+  const [confidence, setConfidence] = useState(
+    String(agentDraft?.payload.confidence ?? 0.65)
+  );
+  const [generatedAt] = useState<string>(agentDraft?.payload.generatedAt ?? "");
   const [record, setRecord] = useState<
     CommittedPrediction | ScoredPrediction
   >();
@@ -55,10 +69,10 @@ export function CommitmentCard({
     const payload: PredictionPayload = {
       agentId,
       matchId: activeMatchId,
-      modelVersion: "proofleague-agent-v1",
+      modelVersion,
       prediction,
       confidence: Number(confidence),
-      generatedAt: new Date().toISOString(),
+      generatedAt: generatedAt || new Date().toISOString(),
     };
     const hash = await hashPrediction(payload);
     const signature = await run(
@@ -96,6 +110,11 @@ export function CommitmentCard({
         The browser wallet signs a Memo transaction containing the SHA-256 hash.
         The payload stays reproducible for later reveal and scoring.
       </p>
+      {agentDraft && (
+        <p className="mt-3 rounded-lg border border-purple-300/30 bg-purple-300/5 p-3 text-xs text-purple-100">
+          Private agent draft loaded: {agentDraft.reason}
+        </p>
+      )}
 
       <div className="mt-5 space-y-3">
         <input
