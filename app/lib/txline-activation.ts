@@ -32,6 +32,15 @@ function isRecent(createdAt: number) {
   return Date.now() - createdAt < SESSION_TTL_MS;
 }
 
+async function readJsonOrText(response: Response): Promise<unknown> {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text.trim();
+  }
+}
+
 export function getRuntimeTxlineCredentials() {
   return state.credentials;
 }
@@ -47,7 +56,11 @@ export async function createTxlineActivationSession(txSig: string) {
     );
   }
 
-  const body = (await response.json()) as { token?: unknown } | string;
+  const body = (await readJsonOrText(response)) as
+    | {
+        token?: unknown;
+      }
+    | string;
   const jwt = typeof body === "string" ? body : body.token;
   if (typeof jwt !== "string" || !jwt) {
     throw new Error("TxLINE guest session did not return a JWT.");
@@ -96,7 +109,11 @@ export async function completeTxlineActivation(input: {
     throw new Error(`TxLINE activation failed with HTTP ${response.status}.`);
   }
 
-  const body = (await response.json()) as { token?: unknown } | string;
+  const body = (await readJsonOrText(response)) as
+    | {
+        token?: unknown;
+      }
+    | string;
   const apiToken = typeof body === "string" ? body : body.token;
   if (typeof apiToken !== "string" || !apiToken) {
     throw new Error("TxLINE activation did not return an API token.");
