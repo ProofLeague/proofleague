@@ -11,6 +11,7 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
 - Deterministic prediction canonicalization and SHA-256 hashing in `app/lib/proof.ts`.
 - Public hash verifier at `/api/proof/verify` plus a browser verification card.
 - Connected-wallet devnet commitment that posts `proofleague:v1:<hash>` through the SPL Memo program.
+- Shared proof ledger API at `/api/ledger` for the public MVP leaderboard.
 - Cluster selector, wallet connection, Explorer links, and a clear path to reveal/scoring.
 
 ## Run locally
@@ -54,6 +55,11 @@ The verifier accepts a `POST` body with `payload` and `expectedHash` and returns
 `valid`, `computedHash`, and `expectedHash`. It validates the payload shape and
 never calls the upstream TxLINE service.
 
+The ledger API currently uses process memory so the MVP can be demonstrated
+across browser tabs against the same running server. Replace it with a durable
+database or hosted store before production deployment.
+
 ## Next slice
 
-Add a small persistence layer for payloads/signatures, then implement reveal, final-result scoring, leaderboard aggregation, and Vitest/Playwright coverage before public deployment.
+Replace process-memory ledger storage with a durable deployment store, then add
+Vitest/Playwright coverage and public deployment.

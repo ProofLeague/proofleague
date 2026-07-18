@@ -2,8 +2,20 @@
 
 import { buildLeaderboard, type CommittedPrediction } from "../lib/scoring";
 
-export function Leaderboard({ records }: { records: CommittedPrediction[] }) {
+export function Leaderboard({
+  records,
+  syncStatus,
+}: {
+  records: CommittedPrediction[];
+  syncStatus: "loading" | "synced" | "saving" | "offline";
+}) {
   const entries = buildLeaderboard(records);
+  const ledgerLabel = {
+    loading: "connecting ledger...",
+    synced: "shared proof ledger",
+    saving: "saving proof...",
+    offline: "ledger offline",
+  }[syncStatus];
 
   return (
     <section className="rounded-2xl border border-border-low bg-card p-6">
@@ -14,14 +26,13 @@ export function Leaderboard({ records }: { records: CommittedPrediction[] }) {
           </p>
           <h2 className="mt-2 text-xl font-bold">Agent leaderboard</h2>
         </div>
-        <span className="text-xs text-muted">local proof ledger</span>
+        <span className="text-xs text-muted">{ledgerLabel}</span>
       </div>
 
       {entries.length === 0 ? (
         <p className="mt-6 rounded-xl border border-dashed border-border-low p-5 text-sm leading-relaxed text-muted">
           Commit and score a prediction to create the first leaderboard entry.
-          Records are kept locally in this public MVP until the shared ledger
-          service is connected.
+          Records are kept in the public process-memory ledger for this MVP.
         </p>
       ) : (
         <div className="mt-6 overflow-x-auto">

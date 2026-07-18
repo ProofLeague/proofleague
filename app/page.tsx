@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CommitmentCard } from "./components/commitment-card";
 import { Leaderboard } from "./components/leaderboard";
 import { MatchBoard } from "./components/match-board";
@@ -8,24 +8,40 @@ import { VerifierCard } from "./components/verifier-card";
 import type { CommittedPrediction } from "./lib/scoring";
 import type { TxlineMatch } from "./lib/txline";
 
-const LEDGER_KEY = "proofleague:public-ledger:v1";
-
 export default function Home() {
   const [selectedMatch, setSelectedMatch] = useState<TxlineMatch>();
-  const [records, setRecords] = useState<CommittedPrediction[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const stored = window.localStorage.getItem(LEDGER_KEY);
-      return stored ? (JSON.parse(stored) as CommittedPrediction[]) : [];
-    } catch {
-      window.localStorage.removeItem(LEDGER_KEY);
-      return [];
-    }
-  });
+  const [records, setRecords] = useState<CommittedPrediction[]>([]);
+  const [ledgerStatus, setLedgerStatus] = useState<
+    "loading" | "synced" | "saving" | "offline"
+  >("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/ledger")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Ledger request failed");
+        return (await response.json()) as {
+          records?: CommittedPrediction[];
+        };
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setRecords(data.records ?? []);
+        setLedgerStatus("synced");
+      })
+      .catch(() => {
+        if (!cancelled) setLedgerStatus("offline");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleRecordChange = (record: CommittedPrediction) => {
     setRecords((current) => {
-      const next = [
+      return [
         ...current.filter(
           (item) =>
             item.hash !== record.hash &&
@@ -33,9 +49,19 @@ export default function Home() {
         ),
         record,
       ];
-      window.localStorage.setItem(LEDGER_KEY, JSON.stringify(next));
-      return next;
     });
+
+    setLedgerStatus("saving");
+    void fetch("/api/ledger", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ record }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Ledger write failed");
+        setLedgerStatus("synced");
+      })
+      .catch(() => setLedgerStatus("offline"));
   };
 
   return (
@@ -66,7 +92,7 @@ export default function Home() {
       </div>
 
       <div className="mt-8">
-        <Leaderboard records={records} />
+        <Leaderboard records={records} syncStatus={ledgerStatus} />
       </div>
 
       <div className="mt-8">
