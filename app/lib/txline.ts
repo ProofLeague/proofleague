@@ -1,3 +1,5 @@
+import type { PredictionChoice } from "./proof";
+
 export type TxlineMatchStatus = "scheduled" | "live" | "finished";
 
 export type TxlineMatch = {
@@ -6,6 +8,7 @@ export type TxlineMatch = {
   awayTeam: string;
   kickoffAt: string;
   status: TxlineMatchStatus;
+  odds?: Partial<Record<PredictionChoice, number>>;
   score?: { home: number; away: number };
 };
 
@@ -55,6 +58,24 @@ function normalizeStatus(value: unknown): TxlineMatchStatus {
   return "scheduled";
 }
 
+function normalizeOdds(
+  value: unknown
+): Partial<Record<PredictionChoice, number>> | undefined {
+  const record = asRecord(value);
+  if (!record) return undefined;
+
+  const home = firstNumber(record, ["home", "homeWin", "home_win"]);
+  const draw = firstNumber(record, ["draw", "tie"]);
+  const away = firstNumber(record, ["away", "awayWin", "away_win"]);
+  const odds = {
+    ...(home !== undefined ? { home } : {}),
+    ...(draw !== undefined ? { draw } : {}),
+    ...(away !== undefined ? { away } : {}),
+  } satisfies Partial<Record<PredictionChoice, number>>;
+
+  return Object.keys(odds).length > 0 ? odds : undefined;
+}
+
 function normalizeMatch(value: unknown): TxlineMatch | null {
   const record = asRecord(value);
   if (!record) return null;
@@ -84,6 +105,9 @@ function normalizeMatch(value: unknown): TxlineMatch | null {
     homeScore !== undefined && awayScore !== undefined
       ? { home: homeScore, away: awayScore }
       : undefined;
+  const odds = normalizeOdds(
+    record.odds ?? record.marketOdds ?? record.market_odds
+  );
 
   return {
     id,
@@ -91,6 +115,7 @@ function normalizeMatch(value: unknown): TxlineMatch | null {
     awayTeam,
     kickoffAt,
     status: normalizeStatus(record.status ?? record.state),
+    ...(odds ? { odds } : {}),
     ...(score ? { score } : {}),
   };
 }

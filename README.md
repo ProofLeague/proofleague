@@ -35,7 +35,7 @@ npm run build
 
 ## TxLINE adapter contract
 
-Set `TXLINE_API_URL` to the server-side endpoint. The adapter accepts a top-level array or a response containing `matches`, `fixtures`, `events`, or `data`. Each match should provide an ID, home team, away team, and kickoff timestamp; status and score are optional. Update `app/lib/txline.ts` once the real TxLINE response fixture is available.
+Set `TXLINE_API_URL` to the server-side endpoint. The adapter accepts a top-level array or a response containing `matches`, `fixtures`, `events`, or `data`. Each match should provide an ID, home team, away team, and kickoff timestamp; status, 1X2 odds, and score are optional. Update `app/lib/txline.ts` once the real TxLINE response fixture is available.
 
 The API key is read only on the server and is never placed in a `NEXT_PUBLIC_*` variable. `.env.local` is ignored by git.
 

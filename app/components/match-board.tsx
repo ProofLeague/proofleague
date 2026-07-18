@@ -99,6 +99,13 @@ export function MatchBoard({
                   ? ` · ${match.score.home}–${match.score.away}`
                   : ""}
               </p>
+              {match.odds && (
+                <p className="mt-2 font-mono text-[11px] text-purple-200/80">
+                  1X2 · H {match.odds.home?.toFixed(2) ?? "—"} · D{" "}
+                  {match.odds.draw?.toFixed(2) ?? "—"} · A{" "}
+                  {match.odds.away?.toFixed(2) ?? "—"}
+                </p>
+              )}
             </button>
           ))}
         </div>
