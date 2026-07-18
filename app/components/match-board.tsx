@@ -85,7 +85,7 @@ export function MatchBoard({
           </p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             {state.error ??
-              "Add TXLINE_API_URL to .env.local and restart the dev server."}
+              "Activate TxLINE or add server-side credentials, then restart the dev server."}
           </p>
         </div>
       )}

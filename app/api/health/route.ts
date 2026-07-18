@@ -1,22 +1,10 @@
 import { NextResponse } from "next/server";
-import { getRuntimeTxlineCredentials } from "../../lib/txline-activation";
+import { getTxlineConfigStatus } from "../../lib/txline";
 
 export const dynamic = "force-dynamic";
 
 export function GET() {
-  const runtimeCredentials = getRuntimeTxlineCredentials();
-  const apiConfigured = Boolean(
-    process.env.TXLINE_API_URL?.trim() || runtimeCredentials
-  );
-  const sessionJwtConfigured = Boolean(
-    process.env.TXLINE_SESSION_JWT?.trim() || runtimeCredentials?.sessionJwt
-  );
-  const apiTokenConfigured = Boolean(
-    process.env.TXLINE_API_TOKEN?.trim() || runtimeCredentials?.apiToken
-  );
-  const scoresConfigured = Boolean(
-    process.env.TXLINE_SCORES_URL_TEMPLATE?.trim() || runtimeCredentials
-  );
+  const status = getTxlineConfigStatus();
 
   return NextResponse.json({
     ok: true,
@@ -25,9 +13,11 @@ export function GET() {
     cluster: "devnet",
     txline: {
       readyForFixtures:
-        apiConfigured && sessionJwtConfigured && apiTokenConfigured,
-      scoresConfigured,
-      runtimeActivated: Boolean(runtimeCredentials),
+        status.apiConfigured &&
+        status.sessionJwtConfigured &&
+        status.apiTokenConfigured,
+      scoresConfigured: status.scoresConfigured,
+      runtimeActivated: status.runtimeActivated,
     },
     ledger: "process-memory",
     timestamp: new Date().toISOString(),

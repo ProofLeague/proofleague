@@ -30,7 +30,8 @@ Public deployment steps and the secret-safe readiness checklist are in
 ```bash
 npm install
 cp .env.example .env.local
-# Set TXLINE_API_URL, TXLINE_SESSION_JWT, and TXLINE_API_TOKEN in .env.local
+# Set TXLINE_SESSION_JWT and TXLINE_API_TOKEN in .env.local; the official
+# devnet fixture and score endpoints are used by default.
 # after activating the matching TxLINE devnet free tier.
 npm run dev
 ```
@@ -57,17 +58,20 @@ curl http://localhost:3001/api/health
 
 ## TxLINE adapter contract
 
-Set `TXLINE_API_URL` to the server-side endpoint. The official devnet fixture
-snapshot is `https://txline-dev.txodds.com/api/fixtures/snapshot`. Configure
-`TXLINE_SESSION_JWT` and `TXLINE_API_TOKEN` in the server environment; they are
+The adapter uses the official devnet fixture snapshot at
+`https://txline-dev.txodds.com/api/fixtures/snapshot` when
+`TXLINE_SESSION_JWT` and `TXLINE_API_TOKEN` are configured. Custom
+`TXLINE_API_URL` and `TXLINE_SCORES_URL_TEMPLATE` values can override those
+defaults. Credentials are configured in the server environment; they are
 sent only as `Authorization: Bearer ...` and `X-Api-Token: ...` headers. The
 adapter accepts the official `FixtureId`, `StartTime`, `Participant1`, and
 `Participant2` fields as well as the redacted local contract. Each match should
 provide an ID, home team, away team, and kickoff timestamp; status, 1X2 odds,
 and score are optional.
-Configure `TXLINE_SCORES_URL_TEMPLATE` for the official score snapshot
-endpoint; the UI requests it when a fixture is selected and keeps the fixture
-usable if score enrichment is temporarily unavailable.
+The official score snapshot endpoint is selected automatically; configure
+`TXLINE_SCORES_URL_TEMPLATE` only when an override is needed. The UI requests
+it when a fixture is selected and keeps the fixture usable if score enrichment
+is temporarily unavailable.
 
 The API key is read only on the server and is never placed in a `NEXT_PUBLIC_*` variable. `.env.local` is ignored by git.
 

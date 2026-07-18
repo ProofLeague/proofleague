@@ -13,18 +13,25 @@ export type TxlineMatch = {
   score?: { home: number; away: number };
 };
 
+export const TXLINE_DEVNET_FIXTURES_URL =
+  "https://txline-dev.txodds.com/api/fixtures/snapshot";
+export const TXLINE_DEVNET_SCORES_URL_TEMPLATE =
+  "https://txline-dev.txodds.com/api/scores/snapshot/{fixtureId}";
+
 type RecordValue = Record<string, unknown>;
 
 export class TxlineConfigurationError extends Error {
   constructor() {
-    super("TXLINE_API_URL is not configured");
+    super("TxLINE credentials or TXLINE_API_URL are not configured");
     this.name = "TxlineConfigurationError";
   }
 }
 
 export class TxlineScoresConfigurationError extends Error {
   constructor() {
-    super("TXLINE_SCORES_URL_TEMPLATE is not configured");
+    super(
+      "TxLINE credentials or TXLINE_SCORES_URL_TEMPLATE are not configured"
+    );
     this.name = "TxlineScoresConfigurationError";
   }
 }
@@ -272,17 +279,45 @@ export function normalizeTxlineMatches(payload: unknown): TxlineMatch[] {
     .filter((match): match is TxlineMatch => match !== null);
 }
 
+export function getTxlineConfigStatus() {
+  const runtimeCredentials = getRuntimeTxlineCredentials();
+  const hasEnvironmentCredentials = Boolean(
+    process.env.TXLINE_SESSION_JWT?.trim() &&
+    (process.env.TXLINE_API_TOKEN?.trim() || process.env.TXLINE_API_KEY?.trim())
+  );
+  const hasCredentials = Boolean(
+    runtimeCredentials || hasEnvironmentCredentials
+  );
+
+  return {
+    apiConfigured: Boolean(
+      process.env.TXLINE_API_URL?.trim() || hasCredentials
+    ),
+    sessionJwtConfigured: Boolean(
+      process.env.TXLINE_SESSION_JWT?.trim() || runtimeCredentials?.sessionJwt
+    ),
+    apiTokenConfigured: Boolean(
+      process.env.TXLINE_API_TOKEN?.trim() ||
+      process.env.TXLINE_API_KEY?.trim() ||
+      runtimeCredentials?.apiToken
+    ),
+    scoresConfigured: Boolean(
+      process.env.TXLINE_SCORES_URL_TEMPLATE?.trim() || hasCredentials
+    ),
+    runtimeActivated: Boolean(runtimeCredentials),
+  };
+}
+
 export function createTxlineAdapter() {
   const runtimeCredentials = getRuntimeTxlineCredentials();
+  const configStatus = getTxlineConfigStatus();
   const endpoint =
     process.env.TXLINE_API_URL?.trim() ??
-    (runtimeCredentials
-      ? "https://txline-dev.txodds.com/api/fixtures/snapshot"
-      : undefined);
+    (configStatus.apiConfigured ? TXLINE_DEVNET_FIXTURES_URL : undefined);
   const scoresEndpointTemplate =
     process.env.TXLINE_SCORES_URL_TEMPLATE?.trim() ??
-    (runtimeCredentials
-      ? "https://txline-dev.txodds.com/api/scores/snapshot/{fixtureId}"
+    (configStatus.scoresConfigured
+      ? TXLINE_DEVNET_SCORES_URL_TEMPLATE
       : undefined);
   const sessionJwt =
     process.env.TXLINE_SESSION_JWT?.trim() ?? runtimeCredentials?.sessionJwt;

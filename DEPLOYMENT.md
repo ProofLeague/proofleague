@@ -5,16 +5,18 @@ Solana devnet and must keep TxLINE credentials server-side.
 
 ## Required environment variables
 
-Set these in the hosting provider's server environment, never in a public
-repository or `NEXT_PUBLIC_*` variable:
+Set the credentials in the hosting provider's server environment, never in a
+public repository or `NEXT_PUBLIC_*` variable:
 
 ```text
-TXLINE_API_URL=https://txline-dev.txodds.com/api/fixtures/snapshot
 TXLINE_SESSION_JWT=<activated guest JWT>
 TXLINE_API_TOKEN=<activated TxLINE API token>
-TXLINE_SCORES_URL_TEMPLATE=https://txline-dev.txodds.com/api/scores/snapshot/{fixtureId}
 TXLINE_REQUEST_TIMEOUT_MS=10000
 ```
+
+The official devnet fixture and score endpoints are selected automatically when
+both credentials are present. `TXLINE_API_URL` and
+`TXLINE_SCORES_URL_TEMPLATE` are optional overrides for a compatible upstream.
 
 `TXLINE_ODDS_URL_TEMPLATE` is optional. The app can run without odds while the
 fixture and score endpoints are being validated.
