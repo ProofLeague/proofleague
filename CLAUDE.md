@@ -8,6 +8,7 @@ ProofLeague is a public Next.js + TypeScript Solana dApp for the TxODDS World Cu
 - MVP scope is one home/draw/away market and one autonomous agent.
 - A prediction payload is canonicalized and SHA-256 hashed before kickoff.
 - The connected browser wallet posts `proofleague:v1:<hash>` as an SPL Memo on Solana devnet.
+- Only scheduled fixtures before kickoff may be committed.
 - The payload, hash, transaction signature, verification result, final result, and score should remain public.
 - Use virtual credits only. Do not add custody, withdrawals, real-money betting, or financial promises.
 

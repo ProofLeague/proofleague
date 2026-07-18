@@ -29,6 +29,16 @@ type PendingCommitment = {
   hash: string;
 };
 
+function isCommitWindowClosed(match?: TxlineMatch) {
+  if (!match) return false;
+  const kickoffAt = Date.parse(match.kickoffAt);
+  return (
+    match.status !== "scheduled" ||
+    Number.isNaN(kickoffAt) ||
+    kickoffAt <= Date.now()
+  );
+}
+
 export function CommitmentCard({
   selectedMatch,
   agentDraft,
@@ -70,6 +80,7 @@ export function CommitmentCard({
     !pendingCommitment ||
     !selectedMatch ||
     pendingCommitment.payload.matchId === selectedMatch.id;
+  const commitWindowClosed = isCommitWindowClosed(selectedMatch);
 
   const publishRecord = (nextRecord: CommittedPrediction) => {
     setRecord(nextRecord);
@@ -78,7 +89,13 @@ export function CommitmentCard({
 
   const prepareCommit = async () => {
     const activeMatchId = selectedMatch?.id ?? matchId;
-    if (cluster !== "devnet" || !activeMatchId || !agentId) return;
+    if (
+      cluster !== "devnet" ||
+      !activeMatchId ||
+      !agentId ||
+      commitWindowClosed
+    )
+      return;
 
     const payload: PredictionPayload = {
       agentId,
@@ -150,6 +167,13 @@ export function CommitmentCard({
           {agentDraft?.payload.matchId} to preserve the verified payload hash.
         </p>
       )}
+      {selectedMatch && commitWindowClosed && (
+        <p className="mt-3 rounded-lg border border-red-300/30 bg-red-300/5 p-3 text-xs text-red-200">
+          Commitment is closed for this fixture. ProofLeague only accepts a
+          prediction while the selected TxLINE match is scheduled and before its
+          kickoff time.
+        </p>
+      )}
 
       <div className="mt-5 space-y-3">
         <input
@@ -212,6 +236,7 @@ export function CommitmentCard({
             !connected ||
             cluster !== "devnet" ||
             !draftMatchesSelection ||
+            commitWindowClosed ||
             !matchId ||
             !agentId
           }
@@ -225,7 +250,9 @@ export function CommitmentCard({
                 ? "Waiting for wallet..."
                 : !draftMatchesSelection
                   ? "Select imported match to commit"
-                  : "Review commitment"}
+                  : commitWindowClosed
+                    ? "Commit window closed"
+                    : "Review commitment"}
         </button>
       </div>
 
