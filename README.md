@@ -38,6 +38,8 @@ Useful checks:
 npm run typecheck
 npm run lint
 npm run build
+# Verify a private agent run before importing it in the browser
+npm run verify:agent -- /path/to/agent-output.json
 ```
 
 ## TxLINE adapter contract

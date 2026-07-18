@@ -55,6 +55,10 @@ export function CommitmentCard({
   const [record, setRecord] = useState<
     CommittedPrediction | ScoredPrediction
   >();
+  const draftMatchesSelection =
+    !agentDraft ||
+    !selectedMatch ||
+    agentDraft.payload.matchId === selectedMatch.id;
 
   const publishRecord = (nextRecord: CommittedPrediction) => {
     setRecord(nextRecord);
@@ -115,6 +119,12 @@ export function CommitmentCard({
           Private agent draft loaded: {agentDraft.reason}
         </p>
       )}
+      {!draftMatchesSelection && (
+        <p className="mt-3 rounded-lg border border-amber-300/30 bg-amber-300/5 p-3 text-xs text-amber-100">
+          The selected match differs from the imported agent draft. Select{" "}
+          {agentDraft?.payload.matchId} to preserve the verified payload hash.
+        </p>
+      )}
 
       <div className="mt-5 space-y-3">
         <input
@@ -164,6 +174,7 @@ export function CommitmentCard({
             isSending ||
             !connected ||
             cluster !== "devnet" ||
+            !draftMatchesSelection ||
             !matchId ||
             !agentId
           }
@@ -175,7 +186,9 @@ export function CommitmentCard({
               ? "Switch to devnet to commit"
               : isSending
                 ? "Waiting for wallet..."
-                : "Commit prediction"}
+                : !draftMatchesSelection
+                  ? "Select imported match to commit"
+                  : "Commit prediction"}
         </button>
       </div>
 
