@@ -16,6 +16,8 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
 - Shared proof ledger API at `/api/ledger` for the public MVP leaderboard.
 - On-demand final-score enrichment at `/api/txline/matches/:matchId/score`.
 - Secret-safe setup status at `/api/txline/status` with free-tier guidance.
+- Browser wallet flow for the official free devnet subscription, with a review
+  step before the `service level 1 / 4 weeks` transaction is approved.
 - Wallet activation helper routes under `/api/txline/activation/*`; runtime
   credentials stay in server memory and are never committed.
 - One or more private agent predictions can be hash-verified in the browser
@@ -40,10 +42,10 @@ npm run dev
 Open http://localhost:3001, leave the cluster on `devnet`, connect a Solana wallet, and use devnet SOL from [faucet.solana.com](https://faucet.solana.com/) if needed. Port 3000 is intentionally avoided because another local app may already use it.
 
 For the no-cost TxLINE World Cup tier, use devnet service level `1`, a 4-week
-subscription, and an empty league list. Approve that subscription manually in
-the wallet, paste its transaction signature into the setup card, then approve
-the separate activation message. The app never requests a private key and does
-not send the subscription transaction automatically.
+subscription, and an empty league list. In the setup card, choose `Review
+subscription`, inspect the parameters, and approve the transaction in the
+wallet. Then approve the separate activation message. The app never requests a
+private key and never signs or sends without wallet approval.
 
 Useful checks:
 

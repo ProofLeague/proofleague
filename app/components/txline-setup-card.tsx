@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TxlineActivationCard } from "./txline-activation-card";
+import { TxlineSubscriptionCard } from "./txline-subscription-card";
 
 type TxlineStatus = {
   freeTier: boolean;
@@ -21,6 +22,7 @@ const steps = [
 
 export function TxlineSetupCard() {
   const [status, setStatus] = useState<TxlineStatus>();
+  const [subscriptionSignature, setSubscriptionSignature] = useState<string>();
 
   useEffect(() => {
     fetch("/api/txline/status", { cache: "no-store" })
@@ -100,7 +102,11 @@ export function TxlineSetupCard() {
           Get devnet SOL
         </a>
       </div>
-      <TxlineActivationCard />
+      <TxlineSubscriptionCard onCreated={setSubscriptionSignature} />
+      <TxlineActivationCard
+        key={subscriptionSignature ?? "manual"}
+        initialTxSig={subscriptionSignature}
+      />
     </section>
   );
 }

@@ -8,10 +8,14 @@ function toBase64(bytes: Uint8Array) {
   return btoa(String.fromCharCode(...Array.from(bytes)));
 }
 
-export function TxlineActivationCard() {
+export function TxlineActivationCard({
+  initialTxSig,
+}: {
+  initialTxSig?: string;
+}) {
   const { cluster } = useCluster();
   const { dispatchAsync, isRunning } = useSignMessage();
-  const [txSig, setTxSig] = useState("");
+  const [txSig, setTxSig] = useState(initialTxSig ?? "");
   const [setupId, setSetupId] = useState<string>();
   const [message, setMessage] = useState<string>();
   const [state, setState] = useState<"idle" | "ready" | "activated" | "error">(
@@ -91,8 +95,8 @@ export function TxlineActivationCard() {
         wallet message signature; it will not ask for a private key.
       </p>
       <p className="mt-2 text-xs leading-relaxed text-muted">
-        This helper does not create or send the subscription transaction. It
-        only activates the API after you approve that transaction yourself.
+        The subscription card above creates the transaction. This step only
+        activates the API after that transaction is confirmed.
       </p>
       <input
         value={txSig}
