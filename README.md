@@ -19,7 +19,8 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
 ```bash
 npm install
 cp .env.example .env.local
-# Set TXLINE_API_URL and, if required, TXLINE_API_KEY in .env.local.
+# Set TXLINE_API_URL, TXLINE_SESSION_JWT, and TXLINE_API_TOKEN in .env.local
+# after activating the matching TxLINE devnet free tier.
 npm run dev
 ```
 
@@ -35,7 +36,14 @@ npm run build
 
 ## TxLINE adapter contract
 
-Set `TXLINE_API_URL` to the server-side endpoint. The adapter accepts a top-level array or a response containing `matches`, `fixtures`, `events`, or `data`. Each match should provide an ID, home team, away team, and kickoff timestamp; status, 1X2 odds, and score are optional. Update `app/lib/txline.ts` once the real TxLINE response fixture is available.
+Set `TXLINE_API_URL` to the server-side endpoint. The official devnet fixture
+snapshot is `https://txline-dev.txodds.com/api/fixtures/snapshot`. Configure
+`TXLINE_SESSION_JWT` and `TXLINE_API_TOKEN` in the server environment; they are
+sent only as `Authorization: Bearer ...` and `X-Api-Token: ...` headers. The
+adapter accepts the official `FixtureId`, `StartTime`, `Participant1`, and
+`Participant2` fields as well as the redacted local contract. Each match should
+provide an ID, home team, away team, and kickoff timestamp; status, 1X2 odds,
+and score are optional.
 
 The API key is read only on the server and is never placed in a `NEXT_PUBLIC_*` variable. `.env.local` is ignored by git.
 

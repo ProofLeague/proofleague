@@ -50,6 +50,47 @@ function firstNumber(record: RecordValue, keys: string[]): number | undefined {
   return undefined;
 }
 
+function firstBoolean(
+  record: RecordValue,
+  keys: string[]
+): boolean | undefined {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "boolean") return value;
+    if (value === "true") return true;
+    if (value === "false") return false;
+  }
+  return undefined;
+}
+
+function firstIdentifier(
+  record: RecordValue,
+  keys: string[]
+): string | undefined {
+  const stringValue = firstString(record, keys);
+  if (stringValue) return stringValue;
+  const numberValue = firstNumber(record, keys);
+  return numberValue === undefined ? undefined : String(numberValue);
+}
+
+function firstTimestamp(
+  record: RecordValue,
+  keys: string[]
+): string | undefined {
+  const stringValue = firstString(record, keys);
+  if (stringValue) return stringValue;
+
+  const numberValue = firstNumber(record, keys);
+  if (numberValue === undefined) return undefined;
+
+  const milliseconds =
+    numberValue < 10_000_000_000 ? numberValue * 1000 : numberValue;
+  const timestamp = new Date(milliseconds);
+  return Number.isNaN(timestamp.getTime())
+    ? undefined
+    : timestamp.toISOString();
+}
+
 function normalizeStatus(value: unknown): TxlineMatchStatus {
   const status = typeof value === "string" ? value.toLowerCase() : "scheduled";
   if (["live", "in_play", "in-play", "playing"].includes(status)) return "live";
@@ -82,19 +123,38 @@ function normalizeMatch(value: unknown): TxlineMatch | null {
 
   const home = asRecord(record.homeTeam) ?? asRecord(record.home);
   const away = asRecord(record.awayTeam) ?? asRecord(record.away);
+  const participant1 = firstString(record, ["Participant1", "participant1"]);
+  const participant2 = firstString(record, ["Participant2", "participant2"]);
+  const participant1IsHome = firstBoolean(record, [
+    "Participant1IsHome",
+    "participant1IsHome",
+  ]);
+  const normalizedParticipantHome =
+    participant1IsHome === false ? participant2 : participant1;
+  const normalizedParticipantAway =
+    participant1IsHome === false ? participant1 : participant2;
   const homeTeam =
     firstString(record, ["homeTeam", "home", "home_name"]) ??
-    firstString(home ?? {}, ["name", "team"]);
+    firstString(home ?? {}, ["name", "team"]) ??
+    normalizedParticipantHome;
   const awayTeam =
     firstString(record, ["awayTeam", "away", "away_name"]) ??
-    firstString(away ?? {}, ["name", "team"]);
-  const id = firstString(record, ["id", "matchId", "eventId", "fixtureId"]);
-  const kickoffAt = firstString(record, [
+    firstString(away ?? {}, ["name", "team"]) ??
+    normalizedParticipantAway;
+  const id = firstIdentifier(record, [
+    "id",
+    "matchId",
+    "eventId",
+    "fixtureId",
+    "FixtureId",
+  ]);
+  const kickoffAt = firstTimestamp(record, [
     "kickoffAt",
     "kickoff",
     "startTime",
     "start_time",
     "scheduledAt",
+    "StartTime",
   ]);
 
   if (!id || !homeTeam || !awayTeam || !kickoffAt) return null;
@@ -114,7 +174,7 @@ function normalizeMatch(value: unknown): TxlineMatch | null {
     homeTeam,
     awayTeam,
     kickoffAt,
-    status: normalizeStatus(record.status ?? record.state),
+    status: normalizeStatus(record.status ?? record.state ?? record.GameState),
     ...(odds ? { odds } : {}),
     ...(score ? { score } : {}),
   };
@@ -139,7 +199,13 @@ export function normalizeTxlineMatches(payload: unknown): TxlineMatch[] {
 
 export function createTxlineAdapter() {
   const endpoint = process.env.TXLINE_API_URL?.trim();
-  const apiKey = process.env.TXLINE_API_KEY?.trim();
+  const sessionJwt = process.env.TXLINE_SESSION_JWT?.trim();
+  const apiToken =
+    process.env.TXLINE_API_TOKEN?.trim() ?? process.env.TXLINE_API_KEY?.trim();
+  const legacyApiKey =
+    !process.env.TXLINE_API_TOKEN?.trim() && !sessionJwt
+      ? process.env.TXLINE_API_KEY?.trim()
+      : undefined;
 
   if (!endpoint) throw new TxlineConfigurationError();
 
@@ -153,7 +219,10 @@ export function createTxlineAdapter() {
         const response = await fetch(endpoint, {
           headers: {
             accept: "application/json",
-            ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+            ...(sessionJwt || legacyApiKey
+              ? { authorization: `Bearer ${sessionJwt ?? legacyApiKey}` }
+              : {}),
+            ...(apiToken ? { "x-api-token": apiToken } : {}),
           },
           cache: "no-store",
           signal: controller.signal,
