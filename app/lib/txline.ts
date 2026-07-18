@@ -1,4 +1,5 @@
 import type { PredictionChoice } from "./proof";
+import { getRuntimeTxlineCredentials } from "./txline-activation";
 
 export type TxlineMatchStatus = "scheduled" | "live" | "finished";
 
@@ -272,11 +273,23 @@ export function normalizeTxlineMatches(payload: unknown): TxlineMatch[] {
 }
 
 export function createTxlineAdapter() {
-  const endpoint = process.env.TXLINE_API_URL?.trim();
-  const scoresEndpointTemplate = process.env.TXLINE_SCORES_URL_TEMPLATE?.trim();
-  const sessionJwt = process.env.TXLINE_SESSION_JWT?.trim();
+  const runtimeCredentials = getRuntimeTxlineCredentials();
+  const endpoint =
+    process.env.TXLINE_API_URL?.trim() ??
+    (runtimeCredentials
+      ? "https://txline-dev.txodds.com/api/fixtures/snapshot"
+      : undefined);
+  const scoresEndpointTemplate =
+    process.env.TXLINE_SCORES_URL_TEMPLATE?.trim() ??
+    (runtimeCredentials
+      ? "https://txline-dev.txodds.com/api/scores/snapshot/{fixtureId}"
+      : undefined);
+  const sessionJwt =
+    process.env.TXLINE_SESSION_JWT?.trim() ?? runtimeCredentials?.sessionJwt;
   const apiToken =
-    process.env.TXLINE_API_TOKEN?.trim() ?? process.env.TXLINE_API_KEY?.trim();
+    process.env.TXLINE_API_TOKEN?.trim() ??
+    process.env.TXLINE_API_KEY?.trim() ??
+    runtimeCredentials?.apiToken;
   const legacyApiKey =
     !process.env.TXLINE_API_TOKEN?.trim() && !sessionJwt
       ? process.env.TXLINE_API_KEY?.trim()

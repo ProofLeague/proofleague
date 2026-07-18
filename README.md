@@ -14,6 +14,8 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
 - Shared proof ledger API at `/api/ledger` for the public MVP leaderboard.
 - On-demand final-score enrichment at `/api/txline/matches/:matchId/score`.
 - Secret-safe setup status at `/api/txline/status` with free-tier guidance.
+- Wallet activation helper routes under `/api/txline/activation/*`; runtime
+  credentials stay in server memory and are never committed.
 - Cluster selector, wallet connection, Explorer links, and a clear path to reveal/scoring.
 
 ## Run locally

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TxlineActivationCard } from "./txline-activation-card";
 
 type TxlineStatus = {
   freeTier: boolean;
@@ -84,6 +85,7 @@ export function TxlineSetupCard() {
           Get devnet SOL
         </a>
       </div>
+      <TxlineActivationCard />
     </section>
   );
 }
