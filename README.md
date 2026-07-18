@@ -33,6 +33,12 @@ npm run dev
 
 Open http://localhost:3001, leave the cluster on `devnet`, connect a Solana wallet, and use devnet SOL from [faucet.solana.com](https://faucet.solana.com/) if needed. Port 3000 is intentionally avoided because another local app may already use it.
 
+For the no-cost TxLINE World Cup tier, use devnet service level `1`, a 4-week
+subscription, and an empty league list. Approve that subscription manually in
+the wallet, paste its transaction signature into the setup card, then approve
+the separate activation message. The app never requests a private key and does
+not send the subscription transaction automatically.
+
 Useful checks:
 
 ```bash

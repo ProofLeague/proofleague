@@ -49,6 +49,21 @@ export function TxlineSetupCard() {
         It only needs a devnet wallet transaction fee and the resulting server
         credentials.
       </p>
+      <div className="mt-4 rounded-xl border border-purple-300/20 bg-background/50 p-4 text-xs text-muted">
+        <p className="font-semibold text-purple-100">Activation checklist</p>
+        <ol className="mt-2 list-decimal space-y-1 pl-4">
+          <li>Keep this app on Solana devnet.</li>
+          <li>Subscribe to service level 1 for 4 weeks.</li>
+          <li>Use an empty league list for the standard World Cup bundle.</li>
+          <li>
+            Approve the subscription in your wallet, then paste its signature
+            below.
+          </li>
+        </ol>
+        <p className="mt-3 break-all font-mono text-[11px] text-muted">
+          Devnet program: 6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J
+        </p>
+      </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {steps.map(([key, label]) => {
           const ready = status?.[key] ?? false;

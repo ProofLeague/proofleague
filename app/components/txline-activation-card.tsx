@@ -90,6 +90,10 @@ export function TxlineActivationCard() {
         paste its Solana transaction signature here. The app will request a
         wallet message signature; it will not ask for a private key.
       </p>
+      <p className="mt-2 text-xs leading-relaxed text-muted">
+        This helper does not create or send the subscription transaction. It
+        only activates the API after you approve that transaction yourself.
+      </p>
       <input
         value={txSig}
         onChange={(event) => setTxSig(event.target.value)}
