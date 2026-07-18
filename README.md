@@ -16,8 +16,9 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
 - Secret-safe setup status at `/api/txline/status` with free-tier guidance.
 - Wallet activation helper routes under `/api/txline/activation/*`; runtime
   credentials stay in server memory and are never committed.
-- Private agent JSON can be hash-verified in the browser before wallet commit;
-  private strategy code stays in the companion repository.
+- One or more private agent predictions can be hash-verified in the browser
+  before selecting a match for wallet commit; private strategy code stays in
+  the companion repository.
 - Cluster selector, wallet connection, Explorer links, and a clear path to reveal/scoring.
 
 ## Run locally
