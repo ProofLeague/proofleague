@@ -24,6 +24,11 @@ function isScoredRecord(
   return "outcome" in record;
 }
 
+type PendingCommitment = {
+  payload: PredictionPayload;
+  hash: string;
+};
+
 export function CommitmentCard({
   selectedMatch,
   agentDraft,
@@ -55,20 +60,25 @@ export function CommitmentCard({
   const [record, setRecord] = useState<
     CommittedPrediction | ScoredPrediction
   >();
+  const [pendingCommitment, setPendingCommitment] =
+    useState<PendingCommitment>();
   const draftMatchesSelection =
     !agentDraft ||
     !selectedMatch ||
     agentDraft.payload.matchId === selectedMatch.id;
+  const pendingMatchesSelection =
+    !pendingCommitment ||
+    !selectedMatch ||
+    pendingCommitment.payload.matchId === selectedMatch.id;
 
   const publishRecord = (nextRecord: CommittedPrediction) => {
     setRecord(nextRecord);
     onRecordChange?.(nextRecord);
   };
 
-  const handleCommit = async () => {
-    const signer = connected?.signer;
+  const prepareCommit = async () => {
     const activeMatchId = selectedMatch?.id ?? matchId;
-    if (!signer || cluster !== "devnet" || !activeMatchId || !agentId) return;
+    if (cluster !== "devnet" || !activeMatchId || !agentId) return;
 
     const payload: PredictionPayload = {
       agentId,
@@ -79,16 +89,31 @@ export function CommitmentCard({
       generatedAt: generatedAt || new Date().toISOString(),
     };
     const hash = await hashPrediction(payload);
+    setPendingCommitment({ payload, hash });
+  };
+
+  const confirmCommit = async () => {
+    const signer = connected?.signer;
+    if (!signer || cluster !== "devnet" || !pendingCommitment) return;
+
     const signature = await run(
       () =>
         client.memo.instructions
-          .addMemo({ memo: "proofleague:v1:" + hash, signers: [signer] })
+          .addMemo({
+            memo: "proofleague:v1:" + pendingCommitment.hash,
+            signers: [signer],
+          })
           .sendTransaction(),
       "Prediction committed to devnet"
     );
 
     if (signature) {
-      publishRecord({ payload, hash, signature });
+      publishRecord({
+        payload: pendingCommitment.payload,
+        hash: pendingCommitment.hash,
+        signature,
+      });
+      setPendingCommitment(undefined);
     }
   };
 
@@ -129,14 +154,20 @@ export function CommitmentCard({
       <div className="mt-5 space-y-3">
         <input
           value={selectedMatch?.id ?? matchId}
-          onChange={(event) => setMatchId(event.target.value)}
+          onChange={(event) => {
+            setPendingCommitment(undefined);
+            setMatchId(event.target.value);
+          }}
           aria-label="Match ID"
           placeholder="TxLINE match ID"
           className="w-full rounded-lg border border-border-low bg-background px-3 py-2.5 text-sm outline-none focus:border-green-400"
         />
         <input
           value={agentId}
-          onChange={(event) => setAgentId(event.target.value)}
+          onChange={(event) => {
+            setPendingCommitment(undefined);
+            setAgentId(event.target.value);
+          }}
           aria-label="Agent ID"
           placeholder="Agent ID"
           className="w-full rounded-lg border border-border-low bg-background px-3 py-2.5 text-sm outline-none focus:border-green-400"
@@ -145,7 +176,10 @@ export function CommitmentCard({
           {(["home", "draw", "away"] as PredictionChoice[]).map((choice) => (
             <button
               key={choice}
-              onClick={() => setPrediction(choice)}
+              onClick={() => {
+                setPendingCommitment(undefined);
+                setPrediction(choice);
+              }}
               className={
                 prediction === choice
                   ? "rounded-lg border border-green-400 bg-green-400/15 px-3 py-2.5 text-sm font-medium capitalize text-green-300 transition"
@@ -160,7 +194,10 @@ export function CommitmentCard({
           Confidence: {Math.round(Number(confidence) * 100)}%
           <input
             value={confidence}
-            onChange={(event) => setConfidence(event.target.value)}
+            onChange={(event) => {
+              setPendingCommitment(undefined);
+              setConfidence(event.target.value);
+            }}
             type="range"
             min="0.5"
             max="0.95"
@@ -169,7 +206,7 @@ export function CommitmentCard({
           />
         </label>
         <button
-          onClick={handleCommit}
+          onClick={() => void prepareCommit()}
           disabled={
             isSending ||
             !connected ||
@@ -188,9 +225,72 @@ export function CommitmentCard({
                 ? "Waiting for wallet..."
                 : !draftMatchesSelection
                   ? "Select imported match to commit"
-                  : "Commit prediction"}
+                  : "Review commitment"}
         </button>
       </div>
+
+      {pendingCommitment && (
+        <div className="mt-5 space-y-3 rounded-xl border border-amber-300/40 bg-amber-300/5 p-4 text-xs">
+          <div>
+            <p className="font-semibold text-amber-100">
+              Review before wallet approval
+            </p>
+            <p className="mt-1 text-muted">
+              This creates one devnet Memo transaction. No funds are
+              transferred; your wallet will show the final fee and ask for
+              approval.
+            </p>
+          </div>
+          <dl className="space-y-1 text-muted">
+            <div className="flex justify-between gap-4">
+              <dt>Cluster</dt>
+              <dd className="font-medium text-foreground">{cluster}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt>Match</dt>
+              <dd className="font-medium text-foreground">
+                {pendingCommitment.payload.matchId}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt>Prediction</dt>
+              <dd className="font-medium capitalize text-foreground">
+                {pendingCommitment.payload.prediction} ·{" "}
+                {Math.round(pendingCommitment.payload.confidence * 100)}%
+              </dd>
+            </div>
+          </dl>
+          <div>
+            <p className="text-muted">Memo</p>
+            <p className="break-all font-mono text-[11px]">
+              proofleague:v1:{pendingCommitment.hash}
+            </p>
+          </div>
+          {!pendingMatchesSelection && (
+            <p className="rounded-lg border border-red-300/30 bg-red-300/5 p-3 text-red-200">
+              The selected match changed after this review. Rebuild the
+              commitment before approving it.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setPendingCommitment(undefined)}
+              className="rounded-lg border border-border-low px-3 py-2 font-semibold text-muted transition hover:bg-background"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void confirmCommit()}
+              disabled={isSending || !pendingMatchesSelection || !connected}
+              className="rounded-lg bg-amber-300 px-3 py-2 font-semibold text-black transition hover:bg-amber-200 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {isSending ? "Waiting for wallet..." : "Approve in wallet"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {record && (
         <div className="mt-5 space-y-3 rounded-xl border border-border-low bg-background/70 p-4 text-xs">

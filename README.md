@@ -11,6 +11,7 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
 - Deterministic prediction canonicalization and SHA-256 hashing in `app/lib/proof.ts`.
 - Public hash verifier at `/api/proof/verify` plus a browser verification card.
 - Connected-wallet devnet commitment that posts `proofleague:v1:<hash>` through the SPL Memo program.
+- Two-step commitment UX: review the match, prediction, cluster, and Memo hash before wallet approval.
 - Shared proof ledger API at `/api/ledger` for the public MVP leaderboard.
 - On-demand final-score enrichment at `/api/txline/matches/:matchId/score`.
 - Secret-safe setup status at `/api/txline/status` with free-tier guidance.
