@@ -24,13 +24,13 @@
 
 ```yaml
 mvp_complete: false
-tests_passing: false
+tests_passing: true
 devnet_deployed: false
 ```
 
 ## next implementation slice
 
 1. Confirm the real TxLINE response shape and update the normalizer with fixtures.
-2. Persist committed payloads and signatures in a small server-side store.
-3. Add reveal, result scoring, leaderboard, and signature/hash verification views.
-4. Add Vitest/Playwright coverage and publish the public deployment.
+2. Replace the browser-local proof ledger with a shared server-side store.
+3. Add an automated scheduled job from the private agent runtime.
+4. Add a public deployment and capture a real devnet commitment plus scored result.
