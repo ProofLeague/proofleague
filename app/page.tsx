@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CommitmentCard } from "./components/commitment-card";
 import { Leaderboard } from "./components/leaderboard";
 import { MatchBoard } from "./components/match-board";
+import { VerifierCard } from "./components/verifier-card";
 import type { CommittedPrediction } from "./lib/scoring";
 import type { TxlineMatch } from "./lib/txline";
 
@@ -66,6 +67,10 @@ export default function Home() {
 
       <div className="mt-8">
         <Leaderboard records={records} />
+      </div>
+
+      <div className="mt-8">
+        <VerifierCard />
       </div>
 
       <section className="mt-8 grid gap-4 text-sm sm:grid-cols-3">

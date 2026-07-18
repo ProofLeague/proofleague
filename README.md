@@ -9,6 +9,7 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
 - Official Solana Foundation Next.js + TypeScript starter using `@solana/kit` and Wallet Standard discovery.
 - Public match feed at `/api/txline/matches`, backed by a server-side TxLINE adapter.
 - Deterministic prediction canonicalization and SHA-256 hashing in `app/lib/proof.ts`.
+- Public hash verifier at `/api/proof/verify` plus a browser verification card.
 - Connected-wallet devnet commitment that posts `proofleague:v1:<hash>` through the SPL Memo program.
 - Cluster selector, wallet connection, Explorer links, and a clear path to reveal/scoring.
 
@@ -47,7 +48,11 @@ organization. No secrets are required to run this public project.
 
 ## Commitment format
 
-The committed payload currently contains `agentId`, `matchId`, `modelVersion`, `prediction`, and `generatedAt`. Its sorted-key JSON is hashed with SHA-256. The resulting hash is written to a devnet Memo, while the payload and transaction signature are the inputs for the later reveal and verification flow.
+The committed payload currently contains `agentId`, `matchId`, `modelVersion`, `prediction`, `confidence`, and `generatedAt`. Its sorted-key JSON is hashed with SHA-256. The resulting hash is written to a devnet Memo, while the payload and transaction signature are the inputs for the later reveal and verification flow.
+
+The verifier accepts a `POST` body with `payload` and `expectedHash` and returns
+`valid`, `computedHash`, and `expectedHash`. It validates the payload shape and
+never calls the upstream TxLINE service.
 
 ## Next slice
 
