@@ -42,10 +42,12 @@ function isCommitWindowClosed(match?: TxlineMatch) {
 export function CommitmentCard({
   selectedMatch,
   agentDraft,
+  records,
   onRecordChange,
 }: {
   selectedMatch?: TxlineMatch;
   agentDraft?: AgentDraft;
+  records: CommittedPrediction[];
   onRecordChange?: (record: CommittedPrediction) => void;
 }) {
   const client = useAppClient();
@@ -81,6 +83,12 @@ export function CommitmentCard({
     !selectedMatch ||
     pendingCommitment.payload.matchId === selectedMatch.id;
   const commitWindowClosed = isCommitWindowClosed(selectedMatch);
+  const targetMatchId = selectedMatch?.id ?? agentDraft?.payload.matchId;
+  const existingRecord = records.find(
+    (item) => item.payload.matchId === targetMatchId
+  );
+  const activeRecord =
+    record?.payload.matchId === targetMatchId ? record : existingRecord;
 
   const publishRecord = (nextRecord: CommittedPrediction) => {
     setRecord(nextRecord);
@@ -135,8 +143,8 @@ export function CommitmentCard({
   };
 
   const handleReveal = () => {
-    if (!record || !selectedMatch?.score || record.scoredAt) return;
-    publishRecord(scoreCommittedPrediction(record, selectedMatch.score));
+    if (!activeRecord || !selectedMatch?.score || activeRecord.scoredAt) return;
+    publishRecord(scoreCommittedPrediction(activeRecord, selectedMatch.score));
   };
 
   return (
@@ -319,21 +327,21 @@ export function CommitmentCard({
         </div>
       )}
 
-      {record && (
+      {activeRecord && (
         <div className="mt-5 space-y-3 rounded-xl border border-border-low bg-background/70 p-4 text-xs">
           <div>
             <p className="text-muted">Canonical hash</p>
-            <p className="break-all font-mono">{record.hash}</p>
+            <p className="break-all font-mono">{activeRecord.hash}</p>
           </div>
           <a
-            href={getExplorerUrl("/tx/" + record.signature)}
+            href={getExplorerUrl("/tx/" + activeRecord.signature)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block text-green-400 underline underline-offset-2"
           >
             Verify memo on Solana Explorer
           </a>
-          {selectedMatch?.score && !record.scoredAt && (
+          {selectedMatch?.score && !activeRecord.scoredAt && (
             <button
               onClick={handleReveal}
               className="w-full rounded-lg border border-purple-300/60 px-3 py-2.5 text-sm font-semibold text-purple-200 transition hover:bg-purple-300/10"
@@ -342,15 +350,15 @@ export function CommitmentCard({
               {selectedMatch.score.away})
             </button>
           )}
-          {record.scoredAt && isScoredRecord(record) && (
+          {activeRecord.scoredAt && isScoredRecord(activeRecord) && (
             <div className="rounded-lg border border-green-400/30 bg-green-400/5 p-3">
               <p className="font-semibold text-green-300">
-                Scored: {record.correct ? "correct" : "incorrect"} ·{" "}
-                {record.points} points
+                Scored: {activeRecord.correct ? "correct" : "incorrect"} ·{" "}
+                {activeRecord.points} points
               </p>
               <p className="mt-1 text-muted">
-                Outcome: {record.outcome} · Brier score:{" "}
-                {record.brierScore.toFixed(2)}
+                Outcome: {activeRecord.outcome} · Brier score:{" "}
+                {activeRecord.brierScore.toFixed(2)}
               </p>
             </div>
           )}

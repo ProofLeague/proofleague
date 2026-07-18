@@ -93,6 +93,7 @@ export default function Home() {
           key={agentDraft?.hash ?? "manual"}
           selectedMatch={selectedMatch}
           agentDraft={agentDraft}
+          records={records}
           onRecordChange={handleRecordChange}
         />
       </div>
