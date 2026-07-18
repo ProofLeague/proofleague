@@ -22,6 +22,9 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
   the companion repository.
 - Cluster selector, wallet connection, Explorer links, and a clear path to reveal/scoring.
 
+Public deployment steps and the secret-safe readiness checklist are in
+[DEPLOYMENT.md](./DEPLOYMENT.md).
+
 ## Run locally
 
 ```bash
