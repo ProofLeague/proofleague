@@ -8,6 +8,38 @@ import {
 import type { CommittedPrediction } from "../../lib/scoring";
 
 const choices: PredictionChoice[] = ["home", "draw", "away"];
+const DEVNET_RPC_URL = "https://api.devnet.solana.com";
+
+async function isConfirmedOnDevnet(signature: string): Promise<boolean> {
+  const response = await fetch(DEVNET_RPC_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "getSignatureStatuses",
+      params: [[signature], { searchTransactionHistory: true }],
+    }),
+    cache: "no-store",
+  });
+  if (!response.ok) return false;
+
+  const body = (await response.json()) as {
+    result?: {
+      value?: Array<{
+        confirmationStatus?: string | null;
+        err?: unknown;
+      } | null>;
+    };
+  };
+  const status = body.result?.value?.[0];
+  return Boolean(
+    status &&
+    status.err === null &&
+    (status.confirmationStatus === "confirmed" ||
+      status.confirmationStatus === "finalized")
+  );
+}
 
 function isPredictionPayload(value: unknown): value is PredictionPayload {
   if (typeof value !== "object" || value === null) return false;
@@ -75,6 +107,16 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Record hash does not match its prediction payload." },
         { status: 400 }
+      );
+    }
+
+    if (!(await isConfirmedOnDevnet(body.record.signature))) {
+      return NextResponse.json(
+        {
+          error:
+            "Solana devnet transaction is not confirmed yet; the record was not added to the ledger.",
+        },
+        { status: 409 }
       );
     }
 
