@@ -12,6 +12,7 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
 - Public hash verifier at `/api/proof/verify` plus a browser verification card.
 - Connected-wallet devnet commitment that posts `proofleague:v1:<hash>` through the SPL Memo program.
 - Shared proof ledger API at `/api/ledger` for the public MVP leaderboard.
+- On-demand final-score enrichment at `/api/txline/matches/:matchId/score`.
 - Cluster selector, wallet connection, Explorer links, and a clear path to reveal/scoring.
 
 ## Run locally
@@ -44,6 +45,9 @@ adapter accepts the official `FixtureId`, `StartTime`, `Participant1`, and
 `Participant2` fields as well as the redacted local contract. Each match should
 provide an ID, home team, away team, and kickoff timestamp; status, 1X2 odds,
 and score are optional.
+Configure `TXLINE_SCORES_URL_TEMPLATE` for the official score snapshot
+endpoint; the UI requests it when a fixture is selected and keeps the fixture
+usable if score enrichment is temporarily unavailable.
 
 The API key is read only on the server and is never placed in a `NEXT_PUBLIC_*` variable. `.env.local` is ignored by git.
 

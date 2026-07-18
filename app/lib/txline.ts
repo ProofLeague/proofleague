@@ -21,6 +21,13 @@ export class TxlineConfigurationError extends Error {
   }
 }
 
+export class TxlineScoresConfigurationError extends Error {
+  constructor() {
+    super("TXLINE_SCORES_URL_TEMPLATE is not configured");
+    this.name = "TxlineScoresConfigurationError";
+  }
+}
+
 function asRecord(value: unknown): RecordValue | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as RecordValue)
@@ -191,6 +198,73 @@ function extractMatches(payload: unknown): unknown[] {
   return [];
 }
 
+function extractScoreUpdates(payload: unknown): RecordValue[] {
+  if (Array.isArray(payload)) {
+    return payload
+      .map(asRecord)
+      .filter((value): value is RecordValue => value !== null);
+  }
+
+  const record = asRecord(payload);
+  if (!record) return [];
+
+  for (const key of ["scores", "updates", "data"]) {
+    if (Array.isArray(record[key])) {
+      return record[key]
+        .map(asRecord)
+        .filter((value): value is RecordValue => value !== null);
+    }
+  }
+
+  return [record];
+}
+
+function scoreFromParticipant(value: unknown): number | undefined {
+  const participant = asRecord(value);
+  if (!participant) return undefined;
+  const total = asRecord(participant.Total) ?? asRecord(participant.total);
+  return firstNumber(total ?? participant, [
+    "Goals",
+    "goals",
+    "Score",
+    "score",
+  ]);
+}
+
+function extractFinalScore(payload: unknown): TxlineMatch["score"] {
+  for (const update of extractScoreUpdates(payload)) {
+    const action = firstString(update, ["action", "Action"])?.toLowerCase();
+    const statusId = firstNumber(update, ["statusId", "StatusId"]);
+    const period = firstNumber(update, ["period", "Period"]);
+    const isFinal =
+      action === "game_finalised" || statusId === 100 || period === 100;
+    if (!isFinal) continue;
+
+    const soccer = asRecord(update.scoreSoccer) ?? asRecord(update.ScoreSoccer);
+    const generic = asRecord(update.score) ?? asRecord(update.Score);
+    const scores = soccer ?? generic;
+    if (!scores) continue;
+
+    const participant1 = scoreFromParticipant(
+      scores.Participant1 ?? scores.participant1
+    );
+    const participant2 = scoreFromParticipant(
+      scores.Participant2 ?? scores.participant2
+    );
+    if (participant1 === undefined || participant2 === undefined) continue;
+
+    const participant1IsHome = firstBoolean(update, [
+      "participant1IsHome",
+      "Participant1IsHome",
+    ]);
+    return participant1IsHome === false
+      ? { home: participant2, away: participant1 }
+      : { home: participant1, away: participant2 };
+  }
+
+  return undefined;
+}
+
 export function normalizeTxlineMatches(payload: unknown): TxlineMatch[] {
   return extractMatches(payload)
     .map(normalizeMatch)
@@ -199,6 +273,7 @@ export function normalizeTxlineMatches(payload: unknown): TxlineMatch[] {
 
 export function createTxlineAdapter() {
   const endpoint = process.env.TXLINE_API_URL?.trim();
+  const scoresEndpointTemplate = process.env.TXLINE_SCORES_URL_TEMPLATE?.trim();
   const sessionJwt = process.env.TXLINE_SESSION_JWT?.trim();
   const apiToken =
     process.env.TXLINE_API_TOKEN?.trim() ?? process.env.TXLINE_API_KEY?.trim();
@@ -209,33 +284,47 @@ export function createTxlineAdapter() {
 
   if (!endpoint) throw new TxlineConfigurationError();
 
+  const headers = {
+    accept: "application/json",
+    ...(sessionJwt || legacyApiKey
+      ? { authorization: `Bearer ${sessionJwt ?? legacyApiKey}` }
+      : {}),
+    ...(apiToken ? { "x-api-token": apiToken } : {}),
+  };
+
+  async function requestJson(url: string): Promise<unknown> {
+    const controller = new AbortController();
+    const timeoutMs = Number(process.env.TXLINE_REQUEST_TIMEOUT_MS ?? 8000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        headers,
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`TxLINE request failed with HTTP ${response.status}`);
+      }
+
+      return response.json();
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   return {
     async listMatches(): Promise<TxlineMatch[]> {
-      const controller = new AbortController();
-      const timeoutMs = Number(process.env.TXLINE_REQUEST_TIMEOUT_MS ?? 8000);
-      const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-      try {
-        const response = await fetch(endpoint, {
-          headers: {
-            accept: "application/json",
-            ...(sessionJwt || legacyApiKey
-              ? { authorization: `Bearer ${sessionJwt ?? legacyApiKey}` }
-              : {}),
-            ...(apiToken ? { "x-api-token": apiToken } : {}),
-          },
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`TxLINE request failed with HTTP ${response.status}`);
-        }
-
-        return normalizeTxlineMatches(await response.json());
-      } finally {
-        clearTimeout(timeout);
-      }
+      return normalizeTxlineMatches(await requestJson(endpoint));
+    },
+    async getFinalScore(fixtureId: string): Promise<TxlineMatch["score"]> {
+      if (!scoresEndpointTemplate) throw new TxlineScoresConfigurationError();
+      const scoreEndpoint = scoresEndpointTemplate.replace(
+        "{fixtureId}",
+        encodeURIComponent(fixtureId)
+      );
+      return extractFinalScore(await requestJson(scoreEndpoint));
     },
   };
 }

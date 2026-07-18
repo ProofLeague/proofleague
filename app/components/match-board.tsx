@@ -18,6 +18,24 @@ export function MatchBoard({
 }) {
   const [state, setState] = useState<MatchResponse>();
 
+  const selectMatch = async (match: TxlineMatch) => {
+    onSelectMatch?.(match);
+
+    try {
+      const response = await fetch(
+        `/api/txline/matches/${encodeURIComponent(match.id)}/score`,
+        { cache: "no-store" }
+      );
+      if (!response.ok) return;
+      const body = (await response.json()) as {
+        score?: TxlineMatch["score"] | null;
+      };
+      if (body.score) onSelectMatch?.({ ...match, score: body.score });
+    } catch {
+      // The match remains selectable when score enrichment is unavailable.
+    }
+  };
+
   useEffect(() => {
     let active = true;
     fetch("/api/txline/matches", { cache: "no-store" })
@@ -78,7 +96,7 @@ export function MatchBoard({
             <button
               type="button"
               key={match.id}
-              onClick={() => onSelectMatch?.(match)}
+              onClick={() => void selectMatch(match)}
               className={
                 selectedMatchId === match.id
                   ? "w-full rounded-xl border border-green-400/70 bg-green-400/5 p-4 text-left transition"
