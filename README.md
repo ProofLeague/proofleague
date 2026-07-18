@@ -13,6 +13,7 @@ This scaffold intentionally starts with one home/draw/away market, one agent, vi
 - Connected-wallet devnet commitment that posts `proofleague:v1:<hash>` through the SPL Memo program.
 - Shared proof ledger API at `/api/ledger` for the public MVP leaderboard.
 - On-demand final-score enrichment at `/api/txline/matches/:matchId/score`.
+- Secret-safe setup status at `/api/txline/status` with free-tier guidance.
 - Cluster selector, wallet connection, Explorer links, and a clear path to reveal/scoring.
 
 ## Run locally

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CommitmentCard } from "./components/commitment-card";
 import { Leaderboard } from "./components/leaderboard";
 import { MatchBoard } from "./components/match-board";
+import { TxlineSetupCard } from "./components/txline-setup-card";
 import { VerifierCard } from "./components/verifier-card";
 import type { CommittedPrediction } from "./lib/scoring";
 import type { TxlineMatch } from "./lib/txline";
@@ -89,6 +90,10 @@ export default function Home() {
           selectedMatch={selectedMatch}
           onRecordChange={handleRecordChange}
         />
+      </div>
+
+      <div className="mt-8">
+        <TxlineSetupCard />
       </div>
 
       <div className="mt-8">
