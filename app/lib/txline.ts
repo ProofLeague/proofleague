@@ -17,6 +17,8 @@ export const TXLINE_DEVNET_FIXTURES_URL =
   "https://txline-dev.txodds.com/api/fixtures/snapshot";
 export const TXLINE_DEVNET_SCORES_URL_TEMPLATE =
   "https://txline-dev.txodds.com/api/scores/snapshot/{fixtureId}";
+export const TXLINE_DEVNET_ODDS_URL_TEMPLATE =
+  "https://txline-dev.txodds.com/api/odds/snapshot/{fixtureId}";
 
 type RecordValue = Record<string, unknown>;
 
@@ -128,6 +130,47 @@ function normalizeOdds(
     ...(draw !== undefined ? { draw } : {}),
     ...(away !== undefined ? { away } : {}),
   } satisfies Partial<Record<PredictionChoice, number>>;
+
+  return Object.keys(odds).length > 0 ? odds : undefined;
+}
+
+function choiceFromPriceName(value: string): PredictionChoice | undefined {
+  const normalized = value.trim().toLowerCase();
+  if (["draw", "tie", "x"].includes(normalized)) return "draw";
+  if (["home", "home win", "1"].includes(normalized)) return "home";
+  if (["away", "away win", "2"].includes(normalized)) return "away";
+  return undefined;
+}
+
+function extractOddsSnapshot(
+  payload: unknown
+): Partial<Record<PredictionChoice, number>> | undefined {
+  const records = Array.isArray(payload)
+    ? payload
+        .map(asRecord)
+        .filter((value): value is RecordValue => value !== null)
+    : [];
+  const odds: Partial<Record<PredictionChoice, number>> = {};
+
+  for (const record of records) {
+    const names = Array.isArray(record.PriceNames)
+      ? record.PriceNames.filter(
+          (value): value is string => typeof value === "string"
+        )
+      : [];
+    const prices = Array.isArray(record.Prices)
+      ? record.Prices.map((value) =>
+          typeof value === "number" ? value : Number(value)
+        )
+      : [];
+
+    names.forEach((name, index) => {
+      const price = prices[index];
+      if (!Number.isFinite(price) || price <= 1) return;
+      const choice = choiceFromPriceName(name);
+      if (choice && odds[choice] === undefined) odds[choice] = price;
+    });
+  }
 
   return Object.keys(odds).length > 0 ? odds : undefined;
 }
@@ -319,6 +362,9 @@ export function createTxlineAdapter() {
     (configStatus.scoresConfigured
       ? TXLINE_DEVNET_SCORES_URL_TEMPLATE
       : undefined);
+  const oddsEndpointTemplate =
+    process.env.TXLINE_ODDS_URL_TEMPLATE?.trim() ??
+    (configStatus.apiConfigured ? TXLINE_DEVNET_ODDS_URL_TEMPLATE : undefined);
   const sessionJwt =
     process.env.TXLINE_SESSION_JWT?.trim() ?? runtimeCredentials?.sessionJwt;
   const apiToken =
@@ -364,7 +410,25 @@ export function createTxlineAdapter() {
 
   return {
     async listMatches(): Promise<TxlineMatch[]> {
-      return normalizeTxlineMatches(await requestJson(endpoint));
+      const matches = normalizeTxlineMatches(await requestJson(endpoint));
+      if (!oddsEndpointTemplate) return matches;
+
+      return Promise.all(
+        matches.map(async (match) => {
+          try {
+            const payload = await requestJson(
+              oddsEndpointTemplate.replace(
+                "{fixtureId}",
+                encodeURIComponent(match.id)
+              )
+            );
+            const odds = extractOddsSnapshot(payload);
+            return odds ? { ...match, odds } : match;
+          } catch {
+            return match;
+          }
+        })
+      );
     },
     async getFinalScore(fixtureId: string): Promise<TxlineMatch["score"]> {
       if (!scoresEndpointTemplate) throw new TxlineScoresConfigurationError();

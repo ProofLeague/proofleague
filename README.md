@@ -71,10 +71,10 @@ adapter accepts the official `FixtureId`, `StartTime`, `Participant1`, and
 `Participant2` fields as well as the redacted local contract. Each match should
 provide an ID, home team, away team, and kickoff timestamp; status, 1X2 odds,
 and score are optional.
-The official score snapshot endpoint is selected automatically; configure
-`TXLINE_SCORES_URL_TEMPLATE` only when an override is needed. The UI requests
-it when a fixture is selected and keeps the fixture usable if score enrichment
-is temporarily unavailable.
+The official score and odds snapshot endpoints are selected automatically;
+configure `TXLINE_SCORES_URL_TEMPLATE` or `TXLINE_ODDS_URL_TEMPLATE` only when
+an override is needed. The server enriches fixtures on a best-effort basis, so
+the app remains usable if a score or odds snapshot is temporarily unavailable.
 
 The API key is read only on the server and is never placed in a `NEXT_PUBLIC_*` variable. `.env.local` is ignored by git.
 
