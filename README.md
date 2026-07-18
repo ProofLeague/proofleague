@@ -37,6 +37,14 @@ Set `TXLINE_API_URL` to the server-side endpoint. The adapter accepts a top-leve
 
 The API key is read only on the server and is never placed in a `NEXT_PUBLIC_*` variable. `.env.local` is ignored by git.
 
+## Repository boundary
+
+This public repository contains the auditable product surface: the UI, protocol
+types, canonical hashing, scoring primitives, and integration boundaries. Agent
+strategy composition, operational deployment files, private fixtures, and
+credentials stay in the companion private repository under the ProofLeague
+organization. No secrets are required to run this public project.
+
 ## Commitment format
 
 The committed payload currently contains `agentId`, `matchId`, `modelVersion`, `prediction`, and `generatedAt`. Its sorted-key JSON is hashed with SHA-256. The resulting hash is written to a devnet Memo, while the payload and transaction signature are the inputs for the later reveal and verification flow.

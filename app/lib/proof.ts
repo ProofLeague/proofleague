@@ -5,6 +5,7 @@ export type PredictionPayload = {
   matchId: string;
   modelVersion: string;
   prediction: PredictionChoice;
+  confidence: number;
   generatedAt: string;
 };
 

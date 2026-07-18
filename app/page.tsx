@@ -1,9 +1,42 @@
 "use client";
 
+import { useState } from "react";
 import { CommitmentCard } from "./components/commitment-card";
+import { Leaderboard } from "./components/leaderboard";
 import { MatchBoard } from "./components/match-board";
+import type { CommittedPrediction } from "./lib/scoring";
+import type { TxlineMatch } from "./lib/txline";
+
+const LEDGER_KEY = "proofleague:public-ledger:v1";
 
 export default function Home() {
+  const [selectedMatch, setSelectedMatch] = useState<TxlineMatch>();
+  const [records, setRecords] = useState<CommittedPrediction[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = window.localStorage.getItem(LEDGER_KEY);
+      return stored ? (JSON.parse(stored) as CommittedPrediction[]) : [];
+    } catch {
+      window.localStorage.removeItem(LEDGER_KEY);
+      return [];
+    }
+  });
+
+  const handleRecordChange = (record: CommittedPrediction) => {
+    setRecords((current) => {
+      const next = [
+        ...current.filter(
+          (item) =>
+            item.hash !== record.hash &&
+            item.payload.matchId !== record.payload.matchId
+        ),
+        record,
+      ];
+      window.localStorage.setItem(LEDGER_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <section className="max-w-3xl">
@@ -21,8 +54,18 @@ export default function Home() {
       </section>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <MatchBoard />
-        <CommitmentCard />
+        <MatchBoard
+          selectedMatchId={selectedMatch?.id}
+          onSelectMatch={setSelectedMatch}
+        />
+        <CommitmentCard
+          selectedMatch={selectedMatch}
+          onRecordChange={handleRecordChange}
+        />
+      </div>
+
+      <div className="mt-8">
+        <Leaderboard records={records} />
       </div>
 
       <section className="mt-8 grid gap-4 text-sm sm:grid-cols-3">

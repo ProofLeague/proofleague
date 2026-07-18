@@ -9,9 +9,27 @@ import {
   type PredictionChoice,
   type PredictionPayload,
 } from "../lib/proof";
+import {
+  scoreCommittedPrediction,
+  type CommittedPrediction,
+  type ScoredPrediction,
+} from "../lib/scoring";
+import type { TxlineMatch } from "../lib/txline";
 import { useSend } from "../lib/hooks/use-send";
 
-export function CommitmentCard() {
+function isScoredRecord(
+  record: CommittedPrediction | ScoredPrediction
+): record is ScoredPrediction {
+  return "outcome" in record;
+}
+
+export function CommitmentCard({
+  selectedMatch,
+  onRecordChange,
+}: {
+  selectedMatch?: TxlineMatch;
+  onRecordChange?: (record: CommittedPrediction) => void;
+}) {
   const client = useAppClient();
   const connected = useConnectedWallet();
   const { cluster, getExplorerUrl } = useCluster();
@@ -19,29 +37,46 @@ export function CommitmentCard() {
   const [matchId, setMatchId] = useState("world-cup-demo-001");
   const [agentId, setAgentId] = useState("proofleague-agent-1");
   const [prediction, setPrediction] = useState<PredictionChoice>("home");
-  const [result, setResult] = useState<{ hash: string; signature: string }>();
+  const [confidence, setConfidence] = useState("0.65");
+  const [record, setRecord] = useState<
+    CommittedPrediction | ScoredPrediction
+  >();
+
+  const publishRecord = (nextRecord: CommittedPrediction) => {
+    setRecord(nextRecord);
+    onRecordChange?.(nextRecord);
+  };
 
   const handleCommit = async () => {
     const signer = connected?.signer;
-    if (!signer || cluster !== "devnet" || !matchId || !agentId) return;
+    const activeMatchId = selectedMatch?.id ?? matchId;
+    if (!signer || cluster !== "devnet" || !activeMatchId || !agentId) return;
 
     const payload: PredictionPayload = {
       agentId,
-      matchId,
+      matchId: activeMatchId,
       modelVersion: "proofleague-agent-v1",
       prediction,
+      confidence: Number(confidence),
       generatedAt: new Date().toISOString(),
     };
     const hash = await hashPrediction(payload);
     const signature = await run(
       () =>
         client.memo.instructions
-          .addMemo({ memo: `proofleague:v1:${hash}`, signers: [signer] })
+          .addMemo({ memo: "proofleague:v1:" + hash, signers: [signer] })
           .sendTransaction(),
       "Prediction committed to devnet"
     );
 
-    if (signature) setResult({ hash, signature });
+    if (signature) {
+      publishRecord({ payload, hash, signature });
+    }
+  };
+
+  const handleReveal = () => {
+    if (!record || !selectedMatch?.score || record.scoredAt) return;
+    publishRecord(scoreCommittedPrediction(record, selectedMatch.score));
   };
 
   return (
@@ -64,7 +99,7 @@ export function CommitmentCard() {
 
       <div className="mt-5 space-y-3">
         <input
-          value={matchId}
+          value={selectedMatch?.id ?? matchId}
           onChange={(event) => setMatchId(event.target.value)}
           aria-label="Match ID"
           placeholder="TxLINE match ID"
@@ -82,16 +117,28 @@ export function CommitmentCard() {
             <button
               key={choice}
               onClick={() => setPrediction(choice)}
-              className={`rounded-lg border px-3 py-2.5 text-sm font-medium capitalize transition ${
+              className={
                 prediction === choice
-                  ? "border-green-400 bg-green-400/15 text-green-300"
-                  : "border-border-low bg-background hover:bg-cream"
-              }`}
+                  ? "rounded-lg border border-green-400 bg-green-400/15 px-3 py-2.5 text-sm font-medium capitalize text-green-300 transition"
+                  : "rounded-lg border border-border-low bg-background px-3 py-2.5 text-sm font-medium capitalize transition hover:bg-cream"
+              }
             >
               {choice}
             </button>
           ))}
         </div>
+        <label className="block text-xs text-muted">
+          Confidence: {Math.round(Number(confidence) * 100)}%
+          <input
+            value={confidence}
+            onChange={(event) => setConfidence(event.target.value)}
+            type="range"
+            min="0.5"
+            max="0.95"
+            step="0.01"
+            className="mt-2 w-full accent-green-400"
+          />
+        </label>
         <button
           onClick={handleCommit}
           disabled={
@@ -113,18 +160,41 @@ export function CommitmentCard() {
         </button>
       </div>
 
-      {result && (
-        <div className="mt-5 space-y-2 rounded-xl border border-border-low bg-background/70 p-4 text-xs">
-          <p className="text-muted">Canonical hash</p>
-          <p className="break-all font-mono">{result.hash}</p>
+      {record && (
+        <div className="mt-5 space-y-3 rounded-xl border border-border-low bg-background/70 p-4 text-xs">
+          <div>
+            <p className="text-muted">Canonical hash</p>
+            <p className="break-all font-mono">{record.hash}</p>
+          </div>
           <a
-            href={getExplorerUrl(`/tx/${result.signature}`)}
+            href={getExplorerUrl("/tx/" + record.signature)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block text-green-400 underline underline-offset-2"
           >
             Verify memo on Solana Explorer
           </a>
+          {selectedMatch?.score && !record.scoredAt && (
+            <button
+              onClick={handleReveal}
+              className="w-full rounded-lg border border-purple-300/60 px-3 py-2.5 text-sm font-semibold text-purple-200 transition hover:bg-purple-300/10"
+            >
+              Reveal and score TxLINE result ({selectedMatch.score.home}–
+              {selectedMatch.score.away})
+            </button>
+          )}
+          {record.scoredAt && isScoredRecord(record) && (
+            <div className="rounded-lg border border-green-400/30 bg-green-400/5 p-3">
+              <p className="font-semibold text-green-300">
+                Scored: {record.correct ? "correct" : "incorrect"} ·{" "}
+                {record.points} points
+              </p>
+              <p className="mt-1 text-muted">
+                Outcome: {record.outcome} · Brier score:{" "}
+                {record.brierScore.toFixed(2)}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </section>

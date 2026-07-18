@@ -9,7 +9,13 @@ type MatchResponse = {
   error?: string;
 };
 
-export function MatchBoard() {
+export function MatchBoard({
+  selectedMatchId,
+  onSelectMatch,
+}: {
+  selectedMatchId?: string;
+  onSelectMatch?: (match: TxlineMatch) => void;
+}) {
   const [state, setState] = useState<MatchResponse>();
 
   useEffect(() => {
@@ -69,9 +75,15 @@ export function MatchBoard() {
       {state && state.matches.length > 0 && (
         <div className="mt-6 space-y-3">
           {state.matches.map((match) => (
-            <article
+            <button
+              type="button"
               key={match.id}
-              className="rounded-xl border border-border-low p-4"
+              onClick={() => onSelectMatch?.(match)}
+              className={
+                selectedMatchId === match.id
+                  ? "w-full rounded-xl border border-green-400/70 bg-green-400/5 p-4 text-left transition"
+                  : "w-full rounded-xl border border-border-low p-4 text-left transition hover:border-purple-300/60"
+              }
             >
               <div className="flex items-center justify-between gap-3 text-xs text-muted">
                 <span className="font-mono">{match.id}</span>
@@ -87,7 +99,7 @@ export function MatchBoard() {
                   ? ` · ${match.score.home}–${match.score.away}`
                   : ""}
               </p>
-            </article>
+            </button>
           ))}
         </div>
       )}
