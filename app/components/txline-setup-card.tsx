@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TxlineActivationCard } from "./txline-activation-card";
+import { TxlineCredentialHandoff } from "./txline-credential-handoff";
 import { TxlineSubscriptionCard } from "./txline-subscription-card";
 
 type TxlineStatus = {
@@ -11,6 +12,7 @@ type TxlineStatus = {
   apiTokenConfigured: boolean;
   scoresConfigured: boolean;
   readyForFixtures: boolean;
+  runtimeActivated: boolean;
 };
 
 const steps = [
@@ -31,7 +33,17 @@ export function TxlineSetupCard() {
       .catch(() => setStatus(undefined));
   }, []);
 
-  if (status?.readyForFixtures && status.scoresConfigured) return null;
+  if (status?.readyForFixtures && status.scoresConfigured) {
+    if (process.env.NODE_ENV !== "development" || !status.runtimeActivated) {
+      return null;
+    }
+
+    return (
+      <section className="rounded-2xl border border-amber-300/30 bg-amber-300/5 p-5">
+        <TxlineCredentialHandoff />
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-2xl border border-purple-300/30 bg-purple-300/5 p-5">
